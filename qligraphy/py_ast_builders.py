@@ -1,5 +1,5 @@
 from typing import Iterable, Union, Any
-from ast import ClassDef, Pass, Name, Load, Store, AnnAssign, Expr, Subscript
+from ast import ClassDef, Pass, Name, Load, Store, AnnAssign, Expr, Subscript, stmt
 
 Context = Union[Load, Store]
 
@@ -14,9 +14,17 @@ class ClassBuilder:
         for name in base_names:
             self.class_def.bases.append(build_name(name))
 
-    def build_body(self, expressions: Iterable[Expr]) -> None:
+    def build_body(self, expressions: Iterable[stmt]) -> None:
         for expr in expressions:
             self.class_def.body.append(expr)
+
+
+def make_pydantic_basemodel(
+    body: Iterable[AnnAssign], builder: ClassBuilder
+) -> ClassDef:
+    builder.build_bases(["BaseModel"])
+    builder.build_body(body)
+    return builder.class_def
 
 
 def build_subscript_assignment(target: str, value: str, slice_: str) -> AnnAssign:
