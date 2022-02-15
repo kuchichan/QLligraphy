@@ -1,5 +1,5 @@
-from ast import AST
-from typing import Final
+from ast import Name
+from typing import Dict, Final
 from graphql.language.ast import (
     FieldDefinitionNode,
     ListTypeNode,
@@ -21,6 +21,7 @@ from .py_ast_builders import (
 
 OPTIONAL: Final[str] = "Optional"
 LIST: Final[str] = "List"
+GQL_TO_PY_SIMPLE_TYPE_MAP: Final[Dict[str, str]] = {"String": "str"}
 
 graphql_schema_visitor = Visitor[Node]()
 
@@ -28,7 +29,7 @@ graphql_schema_visitor = Visitor[Node]()
 @graphql_schema_visitor.register(ObjectTypeDefinitionNode)
 def visit_type_definition_node(visitor: Visitor[Node], node: ObjectTypeDefinitionNode):
     class_body = [visitor.visit(field) for field in node.fields]
-    builder = ClassBuilder(name=visitor.visit(node.name))
+    builder = ClassBuilder(name=node.name.value)
     class_def = make_pydantic_basemodel(body=class_body, builder=builder)
     return class_def
 
@@ -39,7 +40,7 @@ def visit_field_definition_node(visitor: Visitor[Node], node: FieldDefinitionNod
     annotation = visitor.visit(node.type)
 
     if not isinstance(node.type, NonNullTypeNode):
-        annotation = build_subscript(OPTIONAL, annotation)
+        annotation = build_subscript(build_name(OPTIONAL), annotation)
 
     return build_annotation_assignment(target, annotation)
 
@@ -57,9 +58,10 @@ def visit_named_type_node(visitor, node: NamedTypeNode):
 @graphql_schema_visitor.register(ListTypeNode)
 def visit_list_type_node(visitor, node: ListTypeNode):
     slice_ = visitor.visit(node.type)
-    return build_subscript(LIST, slice_=slice_)
+    return build_subscript(build_name(LIST), slice_=slice_)
 
 
 @graphql_schema_visitor.register(NameNode)
-def visit_name_node(_: Visitor[Node], node: NameNode):
-    return build_name(name=node.value)
+def visit_name_node(_: Visitor[Node], node: NameNode) -> Name:
+    name = GQL_TO_PY_SIMPLE_TYPE_MAP.get(node.value, node.value)
+    return build_name(name=name)

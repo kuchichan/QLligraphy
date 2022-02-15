@@ -1,8 +1,3 @@
-from ast import parse
-from astunparse import dump
-from graphql import parse as parse_gql
-from graphql.utilities.build_ast_schema import build_ast_schema 
-
 gql_schema = """
 enum Episode {
   NEWHOPE
@@ -55,7 +50,17 @@ class Starship(BaseModel):
         ...
 """
 
+class_character_graphql_schema = """
+type Character {
+  name: String!
+  appearsIn: [Episode!]!
+}
+"""
 
-dump(parse(source_code))
-result = parse_gql(gql_schema)
-schema = build_ast_schema(result)
+class_character_source_code = """
+class Character(BaseModel):
+    name: str
+    appears_in: List[Episode]
+
+"""
+
