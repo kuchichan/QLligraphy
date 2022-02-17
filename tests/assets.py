@@ -49,18 +49,3 @@ class Starship(BaseModel):
     def length(self, unit: LengthUnit = LengthUnit.METER) -> float:
         ...
 """
-
-class_character_graphql_schema = """
-type Character {
-  name: String!
-  appearsIn: [Episode!]!
-}
-"""
-
-class_character_source_code = """
-class Character(BaseModel):
-    name: str
-    appears_in: List[Episode]
-
-"""
-
