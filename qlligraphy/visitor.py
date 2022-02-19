@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Generic, TypeVar, Type
+from typing import Callable, Dict, Generic, TypeVar, Type, Optional
 
 T = TypeVar("T")
 K = TypeVar("K")
@@ -7,13 +7,15 @@ K = TypeVar("K")
 class Visitor(Generic[T, K]):
     def __init__(self, neutral_element: K):
         self._neutral_element: K = neutral_element
-        self._type_to_func_map: Dict[type[T], Callable[["Visitor", T], K]] = dict()
+        self._type_to_func_map: Dict[
+            type[T], Callable[["Visitor", T, Optional[T]], K]
+        ] = dict()
 
-    def visit(self, node: T) -> K:
+    def visit(self, node: T, ancestor: Optional[T] = None) -> K:
         function = self._type_to_func_map.get(type(node), Visitor[T, K]._blank_visit)
-        return function(self, node)
+        return function(self, node, ancestor)
 
-    def _blank_visit(self, _: T) -> K:
+    def _blank_visit(self, _: T, __: Optional[T] = None) -> K:
         return self._neutral_element
 
     def register(self, node_type: Type[T]):
