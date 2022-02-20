@@ -1,4 +1,4 @@
-gql_schema = """
+GQL_SCHEMA = """
 enum Episode {
   NEWHOPE
   EMPIRE
@@ -26,7 +26,7 @@ type Query {
 }
 """
 
-source_code = """
+SOURCE_CODE = """
 class Episode(str, Enum):
     NEWHOPE = auto()
     EMPIRE = auto()

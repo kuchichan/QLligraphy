@@ -21,7 +21,11 @@ from .py_ast_builders import (
 
 OPTIONAL: Final[str] = "Optional"
 LIST: Final[str] = "List"
-GQL_TO_PY_SIMPLE_TYPE_MAP: Final[Dict[str, str]] = {"String": "str"}
+GQL_TO_PY_SIMPLE_TYPE_MAP: Final[Dict[str, str]] = {
+    "String": "str",
+    "ID": "str",
+    "Integer": "int",
+}
 
 graphql_schema_visitor = Visitor[Node, AST](neutral_element=Pass())
 

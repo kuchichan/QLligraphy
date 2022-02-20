@@ -1,8 +1,8 @@
-from tests.utils import shrink_python_source_code
 from astunparse import unparse
 from graphql import parse
 
 from qlligraphy.graphql_schema_visitor import graphql_schema_visitor
+from tests.utils import shrink_python_source_code
 
 
 def test_gql_schema_visior_creates_class_def_from_object_definition():

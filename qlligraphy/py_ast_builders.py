@@ -21,12 +21,6 @@ class ClassBuilder:
             self.class_def.body.append(expr)
 
 
-def make_pydantic_basemodel(body: Iterable[stmt], builder: ClassBuilder) -> ClassDef:
-    builder.build_bases(["BaseModel"])
-    builder.build_body(body)
-    return builder.class_def
-
-
 def build_subscript_assignment(target: Name, value: Name, slice_: AST) -> AnnAssign:
     return build_annotation_assignment(target, build_subscript(value, slice_))
 
@@ -45,3 +39,9 @@ def build_subscript(value: Name, slice_: AST) -> Subscript:
 
 def build_name(name: str, ctx: Context = Load()) -> Name:
     return Name(id=name, ctx=ctx)
+
+
+def make_pydantic_basemodel(body: Iterable[stmt], builder: ClassBuilder) -> ClassDef:
+    builder.build_bases(["BaseModel"])
+    builder.build_body(body)
+    return builder.class_def
