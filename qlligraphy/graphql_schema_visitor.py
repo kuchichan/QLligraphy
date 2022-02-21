@@ -1,6 +1,7 @@
-from ast import Name, AST, Pass, AnnAssign, ClassDef, stmt, Subscript
+from ast import Name, AST, AnnAssign, ClassDef, stmt, Subscript
 from typing import Dict, Final, List, Optional, Union, cast
 from graphql.language.ast import (
+    DocumentNode,
     FieldDefinitionNode,
     ListTypeNode,
     NameNode,
@@ -17,6 +18,7 @@ from .py_ast_builders import (
     build_name,
     build_subscript,
     make_pydantic_basemodel,
+    make_pydantic_module,
 )
 
 OPTIONAL: Final[str] = "Optional"
@@ -27,7 +29,18 @@ GQL_TO_PY_SIMPLE_TYPE_MAP: Final[Dict[str, str]] = {
     "Integer": "int",
 }
 
-graphql_schema_visitor = Visitor[Node, AST](neutral_element=Pass())
+graphql_schema_visitor = Visitor[Node, AST](blank_value=Name(""))
+
+
+@graphql_schema_visitor.register(DocumentNode)
+def visit_document_node(
+    visitor: Visitor[Node, AST], node: DocumentNode, _: Optional[Node] = None
+):
+
+    definitons = cast(
+        List[stmt], [visitor.visit(definition, node) for definition in node.definitions]
+    )
+    return make_pydantic_module(definitons)
 
 
 @graphql_schema_visitor.register(ObjectTypeDefinitionNode)
