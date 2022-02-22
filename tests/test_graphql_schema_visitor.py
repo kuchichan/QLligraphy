@@ -1,11 +1,14 @@
 from astunparse import unparse
 from graphql import parse
 
-from qlligraphy.graphql_schema_visitor import graphql_schema_visitor
-from tests.utils import shrink_python_source_code
+from qlligraphy.graphql_schema_visitor import GraphQLSchemaVisitor
+from qlligraphy import visit_functions  # pylint: disable=unused-import
+
+from .utils import shrink_python_source_code
 
 
 def test_gql_schema_visior_creates_class_def_from_object_definition():
+    graphql_schema_visitor = GraphQLSchemaVisitor()
     class_character_graphql_schema = """
       type Character {
       name: String!
@@ -28,6 +31,7 @@ def test_gql_schema_visior_creates_class_def_from_object_definition():
 
 
 def test_gql_schema_visitor_creates_class_def_with_optional():
+    graphql_schema_visitor = GraphQLSchemaVisitor()
     class_character_graphql_schema = """
     type Character {
       name: String
@@ -50,6 +54,7 @@ def test_gql_schema_visitor_creates_class_def_with_optional():
 
 
 def test_gql_schema_visitor_module_with_imports():
+    graphql_schema_visitor = GraphQLSchemaVisitor()
     enum_episode_graphql_schema = """
     type Character {
       name: String

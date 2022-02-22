@@ -61,6 +61,7 @@ def build_name(name: str, ctx: Context = Load()) -> Name:
 def make_pydantic_basemodel(body: Iterable[stmt], builder: ClassBuilder) -> ClassDef:
     builder.build_bases(["BaseModel"])
     builder.build_body(body)
+
     return builder.class_def
 
 
