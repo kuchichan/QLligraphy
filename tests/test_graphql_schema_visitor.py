@@ -40,9 +40,9 @@ def test_gql_schema_visitor_creates_class_def_with_optional():
     """
 
     class_character_source_code = """
-      class Character(BaseModel):
-          name: Optional[str]
-          appearsIn: Optional[List[Optional[Episode]]]
+    class Character(BaseModel):
+        name: Optional[str]
+        appearsIn: Optional[List[Optional[Episode]]]
      """
 
     gql_ast = parse(class_character_graphql_schema)
@@ -56,21 +56,26 @@ def test_gql_schema_visitor_creates_class_def_with_optional():
 def test_gql_schema_visitor_module_with_imports():
     graphql_schema_visitor = GraphQLSchemaVisitor()
     enum_episode_graphql_schema = """
+    enum Episode {
+      NEWHOPE
+      EMPIRE
+      JEDI
+    }
+
     type Character {
       name: String
       appearsIn: [Episode]
     }
-     
-    enum Episode {
-        NEWHOPE
-        EMPIRE
-        JEDI
-     }
     """
 
     enum_episode_source_code = """
     from pydantic import BaseModel
- 
+
+    class Episode(str, Enum):
+        NEWHOPE = 'NEWHOPE'
+        EMPIRE = 'EMPIRE'
+        JEDI = 'JEDI'
+
     class Character(BaseModel):
         name: Optional[str]
         appearsIn: Optional[List[Optional[Episode]]]

@@ -1,11 +1,13 @@
 from typing import Iterable, Union, Any, List
 from ast import (
     ClassDef,
+    Constant,
     Pass,
     Name,
     Load,
     Store,
     AnnAssign,
+    Assign,
     Subscript,
     AST,
     stmt,
@@ -60,6 +62,18 @@ def build_name(name: str, ctx: Context = Load()) -> Name:
 
 def make_pydantic_basemodel(body: Iterable[stmt], builder: ClassBuilder) -> ClassDef:
     builder.build_bases(["BaseModel"])
+    builder.build_body(body)
+
+    return builder.class_def
+
+
+def make_enum_class(targets: Iterable[Name], builder: ClassBuilder) -> ClassDef:
+    builder.build_bases(["str", "Enum"])
+    body = [
+        Assign(targets=[target], value=Constant(value=target.id.upper()))
+        for target in targets
+    ]
+
     builder.build_body(body)
 
     return builder.class_def

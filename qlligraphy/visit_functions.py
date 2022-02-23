@@ -1,7 +1,10 @@
 from ast import Name, AST, AnnAssign, ClassDef, stmt, Subscript
 from typing import Dict, Final, List, Optional, Union, cast
+
 from graphql.language.ast import (
     DocumentNode,
+    EnumTypeDefinitionNode,
+    EnumValueDefinitionNode,
     FieldDefinitionNode,
     ListTypeNode,
     NameNode,
@@ -18,6 +21,7 @@ from .py_ast_builders import (
     build_annotation_assignment,
     build_name,
     build_subscript,
+    make_enum_class,
     make_pydantic_basemodel,
     make_pydantic_module,
 )
@@ -28,6 +32,8 @@ GQL_TO_PY_SIMPLE_TYPE_MAP: Final[Dict[str, str]] = {
     "String": "str",
     "ID": "str",
     "Integer": "int",
+    "Boolean": "bool",
+    "Float": "float",
 }
 
 
@@ -56,6 +62,20 @@ def visit_type_definition_node(
     return class_def
 
 
+@GraphQLSchemaVisitor.register(EnumTypeDefinitionNode)
+def visit_enum_type_definition_node(
+    visitor: Visitor[Node, AST], node: EnumTypeDefinitionNode, _: Optional[Node]
+):
+    class_body = cast(
+        List[Name], [visitor.visit(enum_val, node) for enum_val in node.values]
+    )
+
+    builder = ClassBuilder(name=node.name.value)
+    class_def = make_enum_class(class_body, builder=builder)
+
+    return class_def
+
+
 @GraphQLSchemaVisitor.register(FieldDefinitionNode)
 def visit_field_definition_node(
     visitor: Visitor[Node, AST], node: FieldDefinitionNode, _: Optional[Node] = None
@@ -64,6 +84,13 @@ def visit_field_definition_node(
     annotation: Union[AST, Subscript] = visitor.visit(node.type, node)
 
     return build_annotation_assignment(target, annotation)
+
+
+@GraphQLSchemaVisitor.register(EnumValueDefinitionNode)
+def visit_enum_value_definition_node(
+    visitor: Visitor[Node, AST], node: FieldDefinitionNode, _: Optional[Node] = None
+):
+    return visitor.visit(node.name, node)
 
 
 @GraphQLSchemaVisitor.register(NonNullTypeNode)
