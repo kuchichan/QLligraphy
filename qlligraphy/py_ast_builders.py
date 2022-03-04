@@ -18,7 +18,6 @@ from ast import (
 
 Context = Union[Load, Store]
 
-
 class ClassBuilder:
     def __init__(self, name: str) -> None:
         self.class_def = ClassDef(
