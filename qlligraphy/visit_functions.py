@@ -1,5 +1,5 @@
-from ast import Name, AST, AnnAssign, ClassDef, stmt, Subscript
-from typing import Dict, Final, List, Optional, Union, cast
+from ast import Name, AST, stmt
+from typing import Final, List, Optional, cast
 
 from graphql.language.ast import (
     DocumentNode,
@@ -15,7 +15,11 @@ from graphql.language.ast import (
 )
 
 from .visitor import Visitor
-from .graphql_schema_visitor import GraphQLSchemaVisitor
+from .graphql_schema_visitor import (
+    GraphQLSchemaVisitor,
+    AstNodeContext,
+    GQL_TO_PY_SIMPLE_TYPE_MAP,
+)
 from .py_ast_builders import (
     ClassBuilder,
     build_annotation_assignment,
@@ -28,62 +32,73 @@ from .py_ast_builders import (
 
 OPTIONAL: Final[str] = "Optional"
 LIST: Final[str] = "List"
-GQL_TO_PY_SIMPLE_TYPE_MAP: Final[Dict[str, str]] = {
-    "String": "str",
-    "ID": "str",
-    "Integer": "int",
-    "Boolean": "bool",
-    "Float": "float",
-}
 
 
 @GraphQLSchemaVisitor.register(DocumentNode)
 def visit_document_node(
-    visitor: Visitor[Node, AST], node: DocumentNode, _: Optional[Node] = None
+    visitor: Visitor[Node, AstNodeContext], node: DocumentNode, _: Optional[Node] = None
 ):
-    definitons = cast(
-        List[stmt], [visitor.visit(definition, node) for definition in node.definitions]
-    )
+    definitons_ctx = [
+        visitor.visit(definition, node) for definition in node.definitions
+    ]
 
-    return make_pydantic_module(definitons)
+    return AstNodeContext(
+        node=make_pydantic_module(
+            cast(List[stmt], [ctx.node for ctx in definitons_ctx])
+        ),
+        type="",
+        dependencies=[],
+    )
 
 
 @GraphQLSchemaVisitor.register(ObjectTypeDefinitionNode)
 def visit_type_definition_node(
-    visitor: Visitor[Node, AST],
+    visitor: Visitor[Node, AstNodeContext],
     node: ObjectTypeDefinitionNode,
     _: Optional[Node] = None,
-) -> ClassDef:
-    class_body = cast(List[stmt], [visitor.visit(field, node) for field in node.fields])
+) -> AstNodeContext:
+    ctx_list = [visitor.visit(field, node) for field in node.fields]
 
-    builder = ClassBuilder(name=node.name.value)
-    class_def = make_pydantic_basemodel(body=class_body, builder=builder)
+    body = cast(List[stmt], [ctx.node for ctx in ctx_list])
+    name = node.name.value
 
-    return class_def
+    builder = ClassBuilder(name=name)
+    class_def = make_pydantic_basemodel(body=body, builder=builder)
+
+    return AstNodeContext(node=class_def, type=name, dependencies=ctx_list)
 
 
 @GraphQLSchemaVisitor.register(EnumTypeDefinitionNode)
 def visit_enum_type_definition_node(
-    visitor: Visitor[Node, AST], node: EnumTypeDefinitionNode, _: Optional[Node]
-):
+    visitor: Visitor[Node, AstNodeContext],
+    node: EnumTypeDefinitionNode,
+    _: Optional[Node],
+) -> AstNodeContext:
     class_body = cast(
-        List[Name], [visitor.visit(enum_val, node) for enum_val in node.values]
+        List[Name], [visitor.visit(enum_val, node).node for enum_val in node.values]
     )
+    name = node.name.value
 
-    builder = ClassBuilder(name=node.name.value)
+    builder = ClassBuilder(name=name)
     class_def = make_enum_class(class_body, builder=builder)
 
-    return class_def
+    return AstNodeContext(node=class_def, type=name, dependencies=[])
 
 
 @GraphQLSchemaVisitor.register(FieldDefinitionNode)
 def visit_field_definition_node(
-    visitor: Visitor[Node, AST], node: FieldDefinitionNode, _: Optional[Node] = None
-) -> AnnAssign:
+    visitor: Visitor[Node, AstNodeContext],
+    node: FieldDefinitionNode,
+    _: Optional[Node] = None,
+) -> AstNodeContext:
     target = visitor.visit(node.name, node)
-    annotation: Union[AST, Subscript] = visitor.visit(node.type, node)
+    annotation: AstNodeContext = visitor.visit(node.type, node)
 
-    return build_annotation_assignment(target, annotation)
+    return AstNodeContext(
+        node=build_annotation_assignment(target.node, annotation.node),
+        type=annotation.type,
+        dependencies=[],
+    )
 
 
 @GraphQLSchemaVisitor.register(EnumValueDefinitionNode)
@@ -95,39 +110,53 @@ def visit_enum_value_definition_node(
 
 @GraphQLSchemaVisitor.register(NonNullTypeNode)
 def visit_non_null_type_node(
-    visitor: Visitor[Node, AST], node: NonNullTypeNode, _: Optional[Node] = None
-):
+    visitor: Visitor[Node, AstNodeContext],
+    node: NonNullTypeNode,
+    _: Optional[Node] = None,
+) -> AstNodeContext:
     return visitor.visit(node.type, node)
 
 
 @GraphQLSchemaVisitor.register(NamedTypeNode)
 def visit_named_type_node(
-    visitor: Visitor[Node, AST], node: NamedTypeNode, ancestor: Optional[Node] = None
-):
+    visitor: Visitor[Node, AstNodeContext],
+    node: NamedTypeNode,
+    ancestor: Optional[Node] = None,
+) -> AstNodeContext:
     visited = visitor.visit(node.name, node)
 
     if isinstance(ancestor, NonNullTypeNode):
         return visited
 
-    return build_subscript(build_name(OPTIONAL), visited)
+    return AstNodeContext(
+        node=build_subscript(build_name(OPTIONAL), visited.node),
+        type=visited.type,
+        dependencies=[],
+    )
 
 
 @GraphQLSchemaVisitor.register(ListTypeNode)
 def visit_list_type_node(
-    visitor: Visitor[Node, AST], node: ListTypeNode, ancestor: Optional[Node] = None
-) -> Subscript:
-    slice_ = visitor.visit(node.type, node)
-    list_subscript = build_subscript(build_name(LIST), slice_=slice_)
+    visitor: Visitor[Node, AstNodeContext],
+    node: ListTypeNode,
+    ancestor: Optional[Node] = None,
+) -> AstNodeContext:
+    ctx = visitor.visit(node.type, node)
+    list_subscript = build_subscript(build_name(LIST), slice_=ctx.node)
 
     if isinstance(ancestor, NonNullTypeNode):
-        return list_subscript
+        return AstNodeContext(node=list_subscript, type=ctx.type, dependencies=[])
 
-    return build_subscript(build_name(OPTIONAL), list_subscript)
+    return AstNodeContext(
+        node=build_subscript(build_name(OPTIONAL), list_subscript),
+        type=ctx.type,
+        dependencies=[],
+    )
 
 
 @GraphQLSchemaVisitor.register(NameNode)
 def visit_name_node(
-    _: Visitor[Node, AST], node: NameNode, __: Optional[Node] = None
-) -> Name:
+    _: Visitor[Node, AstNodeContext], node: NameNode, __: Optional[Node] = None
+) -> AstNodeContext:
     name = GQL_TO_PY_SIMPLE_TYPE_MAP.get(node.value, node.value)
-    return build_name(name=name)
+    return AstNodeContext(node=build_name(name=name), type=name, dependencies=[])
