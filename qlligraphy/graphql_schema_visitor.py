@@ -1,8 +1,9 @@
 import ast
+from enum import Enum
 from typing import Callable, Dict, Optional, List, Final
 
 import graphql
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator  # pylint: disable=no-name-in-module
 
 from .visitor import Visitor
 
@@ -15,23 +16,33 @@ GQL_TO_PY_SIMPLE_TYPE_MAP: Final[Dict[str, str]] = {
 }
 
 
-class Context(BaseModel):
+class TopologicalSortStatus(str, Enum):
+    NOT_RESOLVED = "not_resolved"
+    VISITED = "visited"
+    RESOLVED = "resolved"
+
+
+class AstNodeContext(BaseModel):
     node: ast.AST
     type: str
-    dependencies: List[str]
+    dependencies: List["AstNodeContext"]
+    status: TopologicalSortStatus = TopologicalSortStatus.NOT_RESOLVED
 
-    @validator("deps")
+    class Config:
+        arbitrary_types_allowed = True
+
+    @validator("dependencies")
     def dependency_is_not_simple_type(cls, value):
         return [
             dependency
             for dependency in value
-            if dependency not in GQL_TO_PY_SIMPLE_TYPE_MAP
+            if dependency.type not in GQL_TO_PY_SIMPLE_TYPE_MAP.values()
         ]
 
 
-class GraphQLSchemaVisitor(Visitor[graphql.Node, ast.AST]):
+class GraphQLSchemaVisitor(Visitor[graphql.Node, AstNodeContext]):
     type_to_func_map: Dict[
         type[graphql.Node],
-        Callable[["Visitor", graphql.Node, Optional[graphql.Node]], ast.AST],
+        Callable[["Visitor", graphql.Node, Optional[graphql.Node]], AstNodeContext],
     ] = {}
-    blank_value = ast.Name("")
+    blank_value = AstNodeContext(node=ast.Name(""), type="String", dependencies=[])

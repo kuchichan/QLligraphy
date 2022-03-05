@@ -23,7 +23,7 @@ def test_gql_schema_visior_creates_class_def_from_object_definition():
      """
 
     gql_ast = parse(class_character_graphql_schema)
-    class_def = graphql_schema_visitor.visit(gql_ast.definitions[0])
+    class_def = graphql_schema_visitor.visit(gql_ast.definitions[0]).node
 
     assert shrink_python_source_code(unparse(class_def)) == shrink_python_source_code(
         class_character_source_code
@@ -46,7 +46,7 @@ def test_gql_schema_visitor_creates_class_def_with_optional():
      """
 
     gql_ast = parse(class_character_graphql_schema)
-    class_def = graphql_schema_visitor.visit(gql_ast.definitions[0])
+    class_def = graphql_schema_visitor.visit(gql_ast.definitions[0]).node
 
     assert shrink_python_source_code(unparse(class_def)) == shrink_python_source_code(
         class_character_source_code
@@ -82,7 +82,7 @@ def test_gql_schema_visitor_module_with_imports():
     """
 
     gql_ast = parse(enum_episode_graphql_schema)
-    enum_def = graphql_schema_visitor.visit(gql_ast)
+    enum_def = graphql_schema_visitor.visit(gql_ast).node
 
     assert shrink_python_source_code(unparse(enum_def)) == shrink_python_source_code(
         enum_episode_source_code
