@@ -17,9 +17,9 @@ from graphql.language.ast import (
 from .visitor import Visitor
 from .graphql_schema_visitor import (
     GraphQLSchemaVisitor,
-    AstNodeContext,
-    GQL_TO_PY_SIMPLE_TYPE_MAP,
 )
+from .constants import GQL_TO_PY_SIMPLE_TYPE_MAP
+from .ast_node_context import AstNodeContext, topological_sort
 from .py_ast_builders import (
     ClassBuilder,
     build_annotation_assignment,
@@ -38,16 +38,20 @@ LIST: Final[str] = "List"
 def visit_document_node(
     visitor: Visitor[Node, AstNodeContext], node: DocumentNode, _: Optional[Node] = None
 ):
-    definitons_ctx = [
+    definitions_ctx = [
         visitor.visit(definition, node) for definition in node.definitions
     ]
+    definition_map = {definition.type: definition for definition in definitions_ctx}
+    for definition in definitions_ctx:
+        definition.build_dependencies(definition_map)
+
+    sorted_definitons = topological_sort(definitions_ctx)
 
     return AstNodeContext(
         node=make_pydantic_module(
-            cast(List[stmt], [ctx.node for ctx in definitons_ctx])
+            cast(List[stmt], [ctx.node for ctx in sorted_definitons])
         ),
         type="",
-        dependencies=[],
     )
 
 
@@ -58,6 +62,11 @@ def visit_type_definition_node(
     _: Optional[Node] = None,
 ) -> AstNodeContext:
     ctx_list = [visitor.visit(field, node) for field in node.fields]
+    types = [
+        field.type
+        for field in ctx_list
+        if field.type not in GQL_TO_PY_SIMPLE_TYPE_MAP.values()
+    ]
 
     body = cast(List[stmt], [ctx.node for ctx in ctx_list])
     name = node.name.value
@@ -65,7 +74,7 @@ def visit_type_definition_node(
     builder = ClassBuilder(name=name)
     class_def = make_pydantic_basemodel(body=body, builder=builder)
 
-    return AstNodeContext(node=class_def, type=name, dependencies=ctx_list)
+    return AstNodeContext(node=class_def, type=name, field_types=types)
 
 
 @GraphQLSchemaVisitor.register(EnumTypeDefinitionNode)
@@ -82,7 +91,7 @@ def visit_enum_type_definition_node(
     builder = ClassBuilder(name=name)
     class_def = make_enum_class(class_body, builder=builder)
 
-    return AstNodeContext(node=class_def, type=name, dependencies=[])
+    return AstNodeContext(node=class_def, type=name)
 
 
 @GraphQLSchemaVisitor.register(FieldDefinitionNode)
@@ -97,7 +106,6 @@ def visit_field_definition_node(
     return AstNodeContext(
         node=build_annotation_assignment(target.node, annotation.node),
         type=annotation.type,
-        dependencies=[],
     )
 
 
@@ -131,7 +139,6 @@ def visit_named_type_node(
     return AstNodeContext(
         node=build_subscript(build_name(OPTIONAL), visited.node),
         type=visited.type,
-        dependencies=[],
     )
 
 
@@ -145,12 +152,11 @@ def visit_list_type_node(
     list_subscript = build_subscript(build_name(LIST), slice_=ctx.node)
 
     if isinstance(ancestor, NonNullTypeNode):
-        return AstNodeContext(node=list_subscript, type=ctx.type, dependencies=[])
+        return AstNodeContext(node=list_subscript, type=ctx.type)
 
     return AstNodeContext(
         node=build_subscript(build_name(OPTIONAL), list_subscript),
         type=ctx.type,
-        dependencies=[],
     )
 
 
@@ -159,4 +165,4 @@ def visit_name_node(
     _: Visitor[Node, AstNodeContext], node: NameNode, __: Optional[Node] = None
 ) -> AstNodeContext:
     name = GQL_TO_PY_SIMPLE_TYPE_MAP.get(node.value, node.value)
-    return AstNodeContext(node=build_name(name=name), type=name, dependencies=[])
+    return AstNodeContext(node=build_name(name=name), type=name)
