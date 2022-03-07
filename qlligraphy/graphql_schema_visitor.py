@@ -6,6 +6,7 @@ import graphql
 from pydantic import BaseModel, validator  # pylint: disable=no-name-in-module
 
 from .visitor import Visitor
+from .ast_node_context import AstNodeContext
 
 GQL_TO_PY_SIMPLE_TYPE_MAP: Final[Dict[str, str]] = {
     "String": "str",
@@ -14,30 +15,6 @@ GQL_TO_PY_SIMPLE_TYPE_MAP: Final[Dict[str, str]] = {
     "Boolean": "bool",
     "Float": "float",
 }
-
-
-class TopologicalSortStatus(str, Enum):
-    NOT_RESOLVED = "not_resolved"
-    VISITED = "visited"
-    RESOLVED = "resolved"
-
-
-class AstNodeContext(BaseModel):
-    node: ast.AST
-    type: str
-    dependencies: List["AstNodeContext"]
-    status: TopologicalSortStatus = TopologicalSortStatus.NOT_RESOLVED
-
-    class Config:
-        arbitrary_types_allowed = True
-
-    @validator("dependencies")
-    def dependency_is_not_simple_type(cls, value):
-        return [
-            dependency
-            for dependency in value
-            if dependency.type not in GQL_TO_PY_SIMPLE_TYPE_MAP.values()
-        ]
 
 
 class GraphQLSchemaVisitor(Visitor[graphql.Node, AstNodeContext]):
