@@ -16,7 +16,7 @@ from graphql.language.ast import (
 
 from .visitor import Visitor
 from .graphql_schema_visitor import (
-    GraphQLSchemaVisitor,
+    GraphQLSchemaVisitor
 )
 from .constants import GQL_TO_PY_SIMPLE_TYPE_MAP
 from .ast_node_context import AstNodeContext, topological_sort
@@ -75,6 +75,7 @@ def visit_type_definition_node(
     class_def = make_pydantic_basemodel(body=body, builder=builder)
 
     return AstNodeContext(node=class_def, type=name, field_types=types)
+
 
 
 @GraphQLSchemaVisitor.register(EnumTypeDefinitionNode)
@@ -154,6 +155,7 @@ def visit_list_type_node(
     if isinstance(ancestor, NonNullTypeNode):
         return AstNodeContext(node=list_subscript, type=ctx.type)
 
+
     return AstNodeContext(
         node=build_subscript(build_name(OPTIONAL), list_subscript),
         type=ctx.type,
@@ -165,4 +167,5 @@ def visit_name_node(
     _: Visitor[Node, AstNodeContext], node: NameNode, __: Optional[Node] = None
 ) -> AstNodeContext:
     name = GQL_TO_PY_SIMPLE_TYPE_MAP.get(node.value, node.value)
+
     return AstNodeContext(node=build_name(name=name), type=name)
