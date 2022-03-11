@@ -1,5 +1,5 @@
 import ast
-from typing import List
+from typing import List, Optional
 from enum import Enum
 
 from pydantic import BaseModel, validator, Field  # pylint: disable=no-name-in-module
@@ -13,9 +13,15 @@ class TopologicalSortStatus(str, Enum):
     RESOLVED = "resolved"
 
 
+class Imports(str, Enum):
+    ENUM = "ENUM"
+    PYDANTIC = "PYDANTIC"
+
+
 class AstNodeContext(BaseModel):
-    node: ast.AST
     type: str
+    node: ast.AST
+    imports: Optional[Imports] = None
     dependencies: List["AstNodeContext"] = Field(default_factory=list)
     status: TopologicalSortStatus = TopologicalSortStatus.NOT_RESOLVED
     field_types: List[str] = Field(default_factory=list)
@@ -57,3 +63,7 @@ def topological_sort(nodes: List["AstNodeContext"]):
                 stack.append(dependency)
 
     return sorted_list
+
+
+def has_imports(definitions: List[AstNodeContext], import_: Imports) -> bool:
+    return any(definition.imports == import_ for definition in definitions)

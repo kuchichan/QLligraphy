@@ -7,3 +7,5 @@ GQL_TO_PY_SIMPLE_TYPE_MAP: Final[Dict[str, str]] = {
     "Boolean": "bool",
     "Float": "float",
 }
+OPTIONAL: Final[str] = "Optional"
+LIST: Final[str] = "List"

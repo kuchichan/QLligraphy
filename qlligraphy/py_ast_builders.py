@@ -79,9 +79,16 @@ def make_enum_class(targets: Iterable[Name], builder: ClassBuilder) -> ClassDef:
     return builder.class_def
 
 
-def make_pydantic_module(body: List[stmt]) -> Module:
-    pydantic_imports: List[stmt] = [
-        ImportFrom(module="pydantic", names=[alias(name="BaseModel")], level=0)
-    ]
+def make_pydantic_module(body: List[stmt], has_enums: bool, has_defs: bool) -> Module:
+    pydantic_imports: List[stmt] = []
+
+    if has_enums:
+        pydantic_imports.append(
+            ImportFrom(module="enum", names=[alias(name="Enum")], level=0)
+        )
+    if has_defs:
+        pydantic_imports.append(
+            ImportFrom(module="pydantic", names=[alias(name="BaseModel")], level=0)
+        )
 
     return build_module(body=pydantic_imports + body)
