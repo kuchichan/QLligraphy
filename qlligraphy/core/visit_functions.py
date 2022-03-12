@@ -17,7 +17,7 @@ from graphql.language.ast import (
 from .base.visitor import Visitor
 from .graphql_schema_visitor import GraphQLSchemaVisitor
 from .constants import GQL_TO_PY_SIMPLE_TYPE_MAP, LIST, OPTIONAL
-from .ast_node_context import AstNodeContext, Imports, has_imports, topological_sort
+from .ast_node_context import AstNodeContext, Imports, topological_sort
 from .py_ast_builders import (
     ClassBuilder,
     build_annotation_assignment,
@@ -41,12 +41,11 @@ def visit_document_node(
         definition.build_dependencies(definition_map)
 
     sorted_definitons = topological_sort(definitions_ctx)
+    imports = {import_ for ctx in definitions_ctx for import_ in ctx.imports}
 
     return AstNodeContext(
         node=make_pydantic_module(
-            cast(List[stmt], [ctx.node for ctx in sorted_definitons]),
-            has_enums=has_imports(definitions_ctx, Imports.ENUM),
-            has_defs=has_imports(definitions_ctx, Imports.PYDANTIC),
+            cast(List[stmt], [ctx.node for ctx in sorted_definitons]), imports
         ),
         type="",
     )
@@ -66,13 +65,15 @@ def visit_type_definition_node(
     ]
 
     body = cast(List[stmt], [ctx.node for ctx in ctx_list])
+    imports = {import_ for ctx in ctx_list for import_ in ctx.imports}
+    imports.add(Imports.PYDANTIC)
     name = node.name.value
 
     builder = ClassBuilder(name=name)
     class_def = make_pydantic_basemodel(body=body, builder=builder)
 
     return AstNodeContext(
-        node=class_def, type=name, field_types=types, imports=Imports.PYDANTIC
+        node=class_def, type=name, field_types=types, imports=frozenset(imports)
     )
 
 
@@ -82,15 +83,16 @@ def visit_enum_type_definition_node(
     node: EnumTypeDefinitionNode,
     _: Optional[Node],
 ) -> AstNodeContext:
-    class_body = cast(
-        List[Name], [visitor.visit(enum_val, node).node for enum_val in node.values]
-    )
+    ctx_list = [visitor.visit(enum_val, node) for enum_val in node.values]
+    class_body = cast(List[Name], [ctx.node for ctx in ctx_list])
+    imports = {import_ for ctx in ctx_list for import_ in ctx.imports}
+    imports.add(Imports.ENUM)
     name = node.name.value
 
     builder = ClassBuilder(name=name)
     class_def = make_enum_class(class_body, builder=builder)
 
-    return AstNodeContext(node=class_def, type=name, imports=Imports.ENUM)
+    return AstNodeContext(node=class_def, type=name, imports=frozenset(imports))
 
 
 @GraphQLSchemaVisitor.register(FieldDefinitionNode)
@@ -99,12 +101,14 @@ def visit_field_definition_node(
     node: FieldDefinitionNode,
     _: Optional[Node] = None,
 ) -> AstNodeContext:
-    target = visitor.visit(node.name, node)
+    target: AstNodeContext = visitor.visit(node.name, node)
     annotation: AstNodeContext = visitor.visit(node.type, node)
+    imports = target.imports.union(annotation.imports)
 
     return AstNodeContext(
         node=build_annotation_assignment(target.node, annotation.node),
         type=annotation.type,
+        imports=imports,
     )
 
 
@@ -138,6 +142,7 @@ def visit_named_type_node(
     return AstNodeContext(
         node=build_subscript(build_name(OPTIONAL), visited.node),
         type=visited.type,
+        imports=visited.imports.union([Imports.TYPING_OPTIONAL]),
     )
 
 
@@ -151,11 +156,16 @@ def visit_list_type_node(
     list_subscript = build_subscript(build_name(LIST), slice_=ctx.node)
 
     if isinstance(ancestor, NonNullTypeNode):
-        return AstNodeContext(node=list_subscript, type=ctx.type)
+        return AstNodeContext(
+            node=list_subscript,
+            type=ctx.type,
+            imports=ctx.imports.union([Imports.TYPING_LIST]),
+        )
 
     return AstNodeContext(
         node=build_subscript(build_name(OPTIONAL), list_subscript),
         type=ctx.type,
+        imports=ctx.imports.union([Imports.TYPING_OPTIONAL, Imports.TYPING_LIST]),
     )
 
 

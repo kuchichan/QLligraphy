@@ -1,6 +1,8 @@
 from astunparse import unparse
 from graphql import parse
 
+import isort
+
 from qlligraphy.core.graphql_schema_visitor import GraphQLSchemaVisitor
 from qlligraphy.core import visit_functions  # pylint: disable=unused-import
 
@@ -96,7 +98,10 @@ def test_gql_schema_visitor_module_with_imports():
 
     enum_episode_source_code = """
     from enum import Enum
+    from typing import List, Optional
+    
     from pydantic import BaseModel
+
 
     class Episode(str, Enum):
         NEWHOPE = 'NEWHOPE'
@@ -111,9 +116,9 @@ def test_gql_schema_visitor_module_with_imports():
     gql_ast = parse(enum_episode_graphql_schema)
     enum_def = graphql_schema_visitor.visit(gql_ast).node
 
-    assert shrink_python_source_code(unparse(enum_def)) == shrink_python_source_code(
-        enum_episode_source_code
-    )
+    assert shrink_python_source_code(
+        isort.code(unparse(enum_def))
+    ) == shrink_python_source_code(enum_episode_source_code)
 
 
 def test_gql_schema_visitor_sorts_definitions_in_terms_of_dependencies():
@@ -133,7 +138,10 @@ def test_gql_schema_visitor_sorts_definitions_in_terms_of_dependencies():
 
     enum_episode_source_code = """
     from enum import Enum
+    from typing import List, Optional
+
     from pydantic import BaseModel
+
 
     class Episode(str, Enum):
         NEWHOPE = 'NEWHOPE'
@@ -148,6 +156,6 @@ def test_gql_schema_visitor_sorts_definitions_in_terms_of_dependencies():
     gql_ast = parse(enum_episode_graphql_schema)
     enum_def = graphql_schema_visitor.visit(gql_ast).node
 
-    assert shrink_python_source_code(unparse(enum_def)) == shrink_python_source_code(
-        enum_episode_source_code
-    )
+    assert shrink_python_source_code(
+        isort.code(unparse(enum_def))
+    ) == shrink_python_source_code(enum_episode_source_code)

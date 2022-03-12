@@ -197,7 +197,7 @@ test_extra = ["pytest", "testpath", "curio", "matplotlib (!=3.2.0)", "nbformat",
 name = "isort"
 version = "5.10.1"
 description = "A Python utility / library to sort Python imports."
-category = "dev"
+category = "main"
 optional = false
 python-versions = ">=3.6.1,<4.0"
 
@@ -535,8 +535,8 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 
 [metadata]
 lock-version = "1.1"
-python-versions = "^3.8"
-content-hash = "f5ac16de702d4d5f4936b2a34618ae417af91239802c318a7774aad9c5935afe"
+python-versions = "^3.9"
+content-hash = "4e5e68454e39d9305c621bbc25c33cdd9ea9cb862f830750af3dda71b0887079"
 
 [metadata.files]
 appnope = [

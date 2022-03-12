@@ -2,6 +2,7 @@
 name = "qlligraphy"
 version = "0.1.0"
 description = "graphql-schema -> pydantic models"
+repository = "https://github.com/kuchichan/QLligraphy"
 authors = ["kuchichan <pawel.kucharski@hotmail.com>"]
 license = "BSD-3-Clause License"
 
@@ -10,9 +11,10 @@ python = "^3.9"
 graphql-core = "^3.2.0"
 pydantic = "^1.9.0"
 astunparse = "^1.6.3"
+isort = "^5.10.1"
+black = "^22.1.0"
 
 [tool.poetry.dev-dependencies]
-black = "^22.1.0"
 pytest = "^7.0.0"
 ipython = "^8.0.1"
 mypy = "^0.931"
@@ -22,6 +24,9 @@ pylint = "^2.12.2"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+qlligraphy = "qlligraphy.main:app"
 
 [tool.pylint.'MESSAGES CONTROL']
 disable=['C0114,C0115,C0116','R0903','E0213','R0201']
