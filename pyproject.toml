@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "qlligraphy"
-version = "0.1.0"
+version = "0.1.1"
 description = "graphql-schema -> pydantic models"
 repository = "https://github.com/kuchichan/QLligraphy"
 authors = ["kuchichan <pawel.kucharski@hotmail.com>"]
