@@ -3,7 +3,7 @@ from typing import Callable, Dict, Optional
 
 import graphql
 
-from .visitor import Visitor
+from .base.visitor import Visitor
 from .ast_node_context import AstNodeContext
 
 

@@ -1,8 +1,8 @@
 from astunparse import unparse
 from graphql import parse
 
-from qlligraphy.graphql_schema_visitor import GraphQLSchemaVisitor
-from qlligraphy import visit_functions  # pylint: disable=unused-import
+from qlligraphy.core.graphql_schema_visitor import GraphQLSchemaVisitor
+from qlligraphy.core import visit_functions  # pylint: disable=unused-import
 
 from .utils import shrink_python_source_code
 
@@ -24,6 +24,32 @@ def test_gql_schema_visior_creates_class_def_from_object_definition():
 
     gql_ast = parse(class_character_graphql_schema)
     class_def = graphql_schema_visitor.visit(gql_ast.definitions[0]).node
+
+    assert shrink_python_source_code(unparse(class_def)) == shrink_python_source_code(
+        class_character_source_code
+    )
+
+
+def test_visitor_passes_unknown_entities():
+    graphql_schema_visitor = GraphQLSchemaVisitor()
+    class_character_graphql_schema = """
+    scalar Date
+
+    type Character {
+     name: String!
+     appearsIn: Float! 
+      }
+    """
+    class_character_source_code = """
+    from pydantic import BaseModel
+      
+    class Character(BaseModel):
+        name: str
+        appearsIn: float 
+     """
+
+    gql_ast = parse(class_character_graphql_schema)
+    class_def = graphql_schema_visitor.visit(gql_ast).node
 
     assert shrink_python_source_code(unparse(class_def)) == shrink_python_source_code(
         class_character_source_code

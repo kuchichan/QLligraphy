@@ -14,7 +14,7 @@ from graphql.language.ast import (
     ObjectTypeDefinitionNode,
 )
 
-from .visitor import Visitor
+from .base.visitor import Visitor
 from .graphql_schema_visitor import GraphQLSchemaVisitor
 from .constants import GQL_TO_PY_SIMPLE_TYPE_MAP, LIST, OPTIONAL
 from .ast_node_context import AstNodeContext, Imports, has_imports, topological_sort
