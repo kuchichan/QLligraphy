@@ -1,6 +1,6 @@
 # Qlligraphy. GraphQL Schema -> Pydantic models 
 
-Qlligraphy is a simple CLI tool, that generate pydantic models based on graphQL schema. 
+Qlligraphy is a simple CLI tool, that generates pydantic models based on graphQL schema. 
 
 ## Installation
 
