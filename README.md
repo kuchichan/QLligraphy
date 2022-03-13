@@ -51,5 +51,5 @@ class Character(BaseModel):
 
 ```
 
-NOTE: This package in WIP state
+Please note: This package is still in WIP state.
 

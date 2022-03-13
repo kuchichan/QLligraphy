@@ -12,6 +12,7 @@ from graphql.language.ast import (
     Node,
     NonNullTypeNode,
     ObjectTypeDefinitionNode,
+    ScalarTypeDefinitionNode,
 )
 
 from .base.visitor import Visitor
@@ -26,6 +27,7 @@ from .py_ast_builders import (
     make_enum_class,
     make_pydantic_basemodel,
     make_pydantic_module,
+    make_scalar_definition
 )
 
 
@@ -176,3 +178,14 @@ def visit_name_node(
     name = GQL_TO_PY_SIMPLE_TYPE_MAP.get(node.value, node.value)
 
     return AstNodeContext(node=build_name(name=name), type=name)
+
+
+# @GraphQLSchemaVisitor.register(ScalarTypeDefinitionNode)
+def visit_scalar_node(
+    visitor: Visitor[Node, AstNodeContext],
+    node: ScalarTypeDefinitionNode,
+    _: Optional[Node] = None,
+):
+    name: Name = cast(Name, visitor.visit(node.name).node)
+    class_builder = ClassBuilder(name=name.id)
+    make_scalar_definition(class_builder)

@@ -69,6 +69,10 @@ def make_pydantic_basemodel(body: Iterable[stmt], builder: ClassBuilder) -> Clas
     return builder.class_def
 
 
+def make_scalar_definition(builder: ClassBuilder):
+    pass
+
+
 def make_enum_class(targets: Iterable[Name], builder: ClassBuilder) -> ClassDef:
     builder.build_bases(["str", "Enum"])
     body = [
