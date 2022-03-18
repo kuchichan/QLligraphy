@@ -27,7 +27,7 @@ from .py_ast_builders import (
     make_enum_class,
     make_pydantic_basemodel,
     make_pydantic_module,
-    make_scalar_definition
+    make_scalar_definition,
 )
 
 

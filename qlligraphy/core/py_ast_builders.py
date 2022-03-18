@@ -69,7 +69,7 @@ def make_pydantic_basemodel(body: Iterable[stmt], builder: ClassBuilder) -> Clas
     return builder.class_def
 
 
-def make_scalar_definition(builder: ClassBuilder):
+def make_scalar_definition(_: ClassBuilder):
     pass
 
 
