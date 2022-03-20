@@ -1,0 +1,36 @@
+name: Main workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_call: 
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: excitedleigh/setup-nox@v2.0.0
+      - run: pip install poetry 
+      - run: pip install nox-poetry
+  
+      - name: lint
+        run: nox -s lint
+
+      - name: black
+        run: nox -s black
+
+      - name: mypy
+        run: nox -s mypy
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: excitedleigh/setup-nox@v2.0.0
+      - run: pip install poetry 
+      - run: pip install nox-poetry
+
+      - name: tests
+        run: nox -s tests
