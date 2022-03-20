@@ -1,3 +1,4 @@
+![Master build](https://github.com/kuchichan/QLligraphy/actions/workflows/main.yml/badge.svg?branch=main)
 # Qlligraphy. GraphQL Schema -> Pydantic models 
 
 Qlligraphy is a simple CLI tool, that generates pydantic models based on graphQL schema. 
